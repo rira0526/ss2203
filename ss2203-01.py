@@ -1,61 +1,56 @@
 import os
 import pydicom
-import dicom
 import matplotlib.pyplot as plt
+import argparse
+import numpy as np
+from PIL import Image
+import FileOutput
 
-#dicomファイルのリストの取得
-path = "HeadCtSample_2022"
-file_name= []
-InstanceNumber = []
-file_count = 0
-for _file_name in os.listdir(path):
-    file_name.append(path + '/' + _file_name)
-    ds = pydicom.read_file(file_name[file_count])
-    InstanceNumber.append(ds.InstanceNumber)
-    file_count += 1 
-print(InstanceNumber)
-print(file_count)
+def main():
+    #dicomファイルのリストの取得
+    parser = argparse.ArgumentParser()      #コマンド入力でフォルダ名を取得
+    parser.add_argument('folder_name')
+    args = parser.parse_args()
+    path = args.folder_name
+    file_name= []
+    instance_number = []
+    file_count = 0
+    for _file_name in os.listdir(path):     #フォルダ内のファイル名を取得し、パスを加える
+        file_name.append(path + '/' + _file_name)
+        ds = pydicom.read_file(file_name[file_count])
+        instance_number.append(int(ds.InstanceNumber))      #インスタンスナンバーを取得する
+        file_count += 1 
+    order_file_name = []
 
-# ds = pydicom.read_file(files[0])
-# root_dir = './HeadCtSample_2022'
-# dcms = []
-# for d, s, fl in os.walk(root_dir):
-#     for fn in fl:
-#         if ".dcm" in fn.lower():
-#             dcms.append(os.path.join(d, fn))
-# ref_dicom = dicom.read_file(dcms[0])
-# d_array = np.zeros((ref_dicom.Rows, ref_dicom.Columns, len(dcms)), dtype=ref_dicom.pixel_array.dtype)
-# for dcm in dcms:
-#     d = dicom.read_file(dcm)
-#     d_array[:, :, dcms.index(dcm)] = d.pixel_array
+    #ファイル名を、インスタンスナンバーの昇順に並べ替える
+    for index in range(file_count):
+        for order in instance_number:
+            if order - 1== index:
+                order_file_name.append(file_name[instance_number.index(index + 1)])
+                ds = pydicom.read_file(order_file_name[index])
+            
+    dcm_array = []
+    ds0 = pydicom.read_file(order_file_name[0])
+    ds1 = pydicom.read_file(order_file_name[1])
 
-# path_list = glob.glob(ChestCT + '\*')
-# print(path_list)
+    rescale_intercept = ds0.RescaleIntercept
+    rescale_slope = ds1.RescaleSlope
 
-# name_list = []
-#     for i in path_list:
-#         file = os.path.basename(i)          
-#         name, ext = os.path.splitext(file)  
-#         name_list.append(name)              
-#     return path_list, name_list
-# _data=pd.DataFrame()
+    pixel_spacing = ds0.PixelSpacing        #解像度
+    zdistance = int(ds0.ImagePositionPatient[2]) - int(ds1.ImagePositionPatient[2])     #z方向の解像度
 
+    #3次元画像データの作成
+    for dcm in order_file_name:
+        ds = pydicom.read_file(dcm)
+        dcm_array.append(ds.pixel_array) 
+            
+    dcm_np_array = np.array(dcm_array)              #配列をnumpy配列に変換する
+    if ds0.Modality == 'CT':                        #モダリティがCTの場合に、numpy配列を書き換える
+        dcm_np_array = dcm_np_array * rescale_intercept + rescale_slope
 
-# for file, name in zip(path_list,name_list):
-#     tmp=pd.read_csv(file)
-#     _data=pd.concat([_data,tmp],sort=True)
+    FileOutput.WriteMhd(dcm_np_array, zdistance, pixel_spacing)
+    FileOutput.WriteRaw(dcm_np_array,'dcm.raw',np.int16)
 
+if __name__=="__main__":
+    main()
 
-# import pydicom
-# path = pydicom.data.get_testdata_file('1.2.276.0.7230010.3.1.4.296485376.1.1521714580.2081598.dcm')
-# dataset = pydicom.filereader.dcmread(path)
-# print(type(dataset))
-
-# import matplotlib.pyplot as plt
-# import numpy as numpy
-# import pydicom
-
-# dcm_data =  pydicom.dcmread('1.2.276.0.7230010.3.1.4.296485376.1.1521714580.2081598.dcm')
-# img = dcm_data.pixel_array
-# plt.imshow(img, cmap = "gray", vmax = 100, vmin = 0)
-# plt.show()
