@@ -39,7 +39,7 @@ def main():
         areas = np.lib.stride_tricks.as_strided(pad_dim2, dim2.shape + (3, 3), pad_dim2.strides * 2)
         eroded_dim2 = np.min(areas, axis=(2, 3))
         eroded_sheet[sheet, ...] = eroded_dim2
-    FileOutput.WriteRaw(eroded_sheet,"output.raw",np.uint8)
+    FileOutput.write_raw(eroded_sheet,"output.raw",np.uint8)
 
     
 if __name__=="__main__":
