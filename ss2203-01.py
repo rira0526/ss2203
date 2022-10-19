@@ -48,8 +48,8 @@ def main():
     if ds0.Modality == 'CT':                        #モダリティがCTの場合に、numpy配列を書き換える
         dcm_np_array = dcm_np_array * rescale_intercept + rescale_slope
 
-    FileOutput.WriteMhd(dcm_np_array, zdistance, pixel_spacing)
-    FileOutput.WriteRaw(dcm_np_array,'dcm.raw',np.int16)
+    FileOutput.write_mhd(dcm_np_array, zdistance, pixel_spacing)
+    FileOutput.write_raw(dcm_np_array,'dcm.raw',np.int16)
 
 if __name__=="__main__":
     main()
